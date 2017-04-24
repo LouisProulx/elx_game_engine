@@ -56,6 +56,28 @@ defmodule IslandsEngine.Rules do
   def player1_turn({:call,from}, :show_current_state,_state_data) do
     {:keep_state_and_data,{:reply,from,:player1_turn}}
   end
+  def player1_turn({:call,from}, {:guess_coordinate, :player1}, state_data) do
+    {:next_state,:player2_turn,state_data,{:reply,from,:ok}}
+  end
+  def player1_turn({:call,from},:win,state_data) do
+    {:next_state,:game_over,state_data, {:reply,from,:ok}}
+  end
+  def player1_turn({:call,from},_,_state_data) do
+    {:keep_state_and_data,{:reply,from,:error}}
+  end
+
+  def player2_turn({:call,from},:show_current_state,_state_data) do
+    {:keep_state_and_data, {:reply,from,:player2_turn}}
+  end
+  def player2_turn({:call,from},{:guess_coordinate,:player2},state_data) do
+    {:next_state,:player1_turn,state_data,{:reply,from,:ok}}
+  end
+  def player2_turn({:call,from}, :win,state_data) do
+    {:next_state,:game_over,state_data,{:reply,from,:ok}}
+  end
+  def player2_turn(_event,_caller_pid,state) do
+    {:reply,{:error,:action_out_of_sequence}, :player2_turn,state}
+  end
 
   defp set_islands_reply(from,state_data,status,status)
     when status == :islands_set do
@@ -76,4 +98,21 @@ defmodule IslandsEngine.Rules do
   def set_islands(fsm,player) when is_atom player do
     :gen_statem.call(fsm,{:set_islands,player})
   end
+
+  def guess_coordinate(fsm,player) when is_atom player do
+    :gen_statem.call(fsm, {:guess_coordinate,player})
+  end
+
+  def win(fsm) do
+    :gen_statem.call(fsm,:win)
+  end
+
+
+  def game_over({:call,from},:show_current_state,_state_data) do
+    {:keep_state_and_data,{:reply,from,:game_over}}
+  end
+  def game_over({:call,from},_,_state_data) do
+    {:keep_state_and_data,{:reply,from,:error}}
+  end
+
 end
